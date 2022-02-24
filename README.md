@@ -26,4 +26,9 @@ Terminate Functionality (20%) - The game terminates either when the player corre
 Reset Functionality (10%) - Switches will allow players to reset the game. 
 
 
-Plan: 
+Tasks: 
+Display background grid of rectangles - 6 by 5 - grey background on white 
+Display letters 
+Be able to change color of grid
+Huffman encoding - for words - figure out how much space 
+  Ran test for huffman encoding - for 1000 5 letter words, can get it so that it averages 4.336 per char - makes it worth it 
