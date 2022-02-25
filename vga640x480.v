@@ -103,24 +103,29 @@ begin
 		// now display different colors every 80 pixels
 		// while we're within the active horizontal range
 		// -----------------
-		// display white box
-		if (hc >= (hbp + 80) && hc < (hbp+160) && vc >= vbp && vc < (vbp+80))
+		if (hc >= hbp && hc < hfp)
 		begin
-			red = 3'b111;
-			green = 3'b111;
-			blue = 2'b11;
-		end
-		else if (hc >= (hbp + 160) && hc < (hbp+240) && vc >= vbp && vc < (vbp+80))
-		begin
-			red = 3'b101;
-			green = 3'b101;
-			blue = 2'b01;
-		end
-		else if (hc >= hbp && hc < (hbp+640))
-		begin
-			red = (hc + vc)/20;
-			green = (hc + 2 * vc)/40;
-			blue = 2'b00;
+			if (hc >= (hbp+120) && hc < (hfp-110) && vc % 80 < 10)
+			// display horizontal lines
+			begin
+				red = 0;
+				green = 0;
+				blue = 0;
+			end
+			else if (hc >= (hbp+120) && hc < (hfp-110) && hc % 80 >= 40 && hc % 80 < 50)
+			// display vertical lines
+			begin
+				red = 0;
+				green = 0;
+				blue = 0;
+			end
+			else
+			// display white background
+			begin
+				red = 3'b111;
+				green = 3'b111;
+				blue = 2'b11;
+			end
 		end
 		// we're outside active horizontal range so display black
 		else
