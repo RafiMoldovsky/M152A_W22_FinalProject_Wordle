@@ -105,14 +105,14 @@ begin
 		// -----------------
 		if (hc >= hbp && hc < hfp)
 		begin
-			if (hc >= (hbp+120) && hc < (hfp-110) && vc % 80 < 10)
+			if (hc >= (hbp+140) && hc < (hfp-100) && vc % 80 >= 25 && vc % 80 < 35)
 			// display horizontal lines
 			begin
 				red = 0;
 				green = 0;
 				blue = 0;
 			end
-			else if (hc >= (hbp+120) && hc < (hfp-110) && hc % 80 >= 40 && hc % 80 < 50)
+			else if (hc >= (hbp+120) && hc < (hfp-90) && hc % 80 >= 40 && hc % 80 < 50)
 			// display vertical lines
 			begin
 				red = 0;
@@ -145,5 +145,4 @@ begin
 end
 
 endmodule
-
 
