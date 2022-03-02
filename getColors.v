@@ -40,7 +40,7 @@ module getColors(
                 true=0;
             end
         end
-        if(true==1) begin
+		   if(true==1) begin
             greens[i]=1; 
 				yellows[i]=0;
         end
@@ -52,26 +52,18 @@ module getColors(
 	 //now for yellows
     for(i=0; i<5; i=i+1) begin
             for(j=0; j<5; j=j+1) begin
-						//this is for the case of double letter words - 
-						  //don't want a second letter to show up green for a single letter 
-                    //For example: inputWord=vivid, chosenWord=simple - only want the first i to show up green 
-                    // second i should show up as grey
-						  for(k=0; k<5;k=k+1) begin
-						  if(greens[i]==0 && greens[j]==0 && yellows[i]==0) begin  //only for those letters which are not green
-							if(inputWord[k+(i*5)]!=chosenWord[k+(j*5)]) begin
-								true=0;
-							end
-							else begin
-								true=true+1;
-							end
-							end
-						  end
-						  if(true==5 && greens[i]==0 && greens[j]==0) begin
-							yellows[i]=1;
-							//j=5;
-						  end
-						  true=0;
-                
+                for(k=0; k<5;k=k+1) begin
+                    if(greens[i]==1) begin  //only for those letters which are not green
+                        true=0;
+                    end
+                    else if(inputWord[k+(i*5)]!=chosenWord[k+(j*5)]) begin
+                        true=0;
+								end
+                end
+                if(true==1) begin
+                    yellows[i]=1;
+                end
+                true=1;
             end
         end
     end
