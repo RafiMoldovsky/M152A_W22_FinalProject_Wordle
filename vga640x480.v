@@ -21,9 +21,7 @@
 module vga640x480(
 	input wire dclk,			//pixel clock: 25MHz
 	input wire clr,			//asynchronous reset
-	input wire [6:0] display,	// [6:5] color; [4:0] character
-	input wire [2:0] row,
-	input wire [2:0] col,
+	input wire [209:0] display,	// [6:5] color; [4:0] character
 	output wire hsync,		//horizontal sync out
 	output wire vsync,		//vertical sync out
 	output reg [2:0] red,	//red vga output
@@ -171,8 +169,8 @@ assign vsync = (vc < vpulse) ? 0:1;
 
 wire [4:0] char;
 wire [1:0] color;
-assign char = display[4:0];
-assign color = display[6:5];
+assign char = box_i * 35 + box_j * 7 + 4:box_i * 35 + box_j * 7 + 0;
+assign color = box_i * 35 + box_j * 7 + 6:box_i * 35 + box_j * 7 + 5;
 
 always @(*) begin
 // first check if we're within vertical active video range
@@ -184,27 +182,33 @@ always @(*) begin
 			// main game area
 			if (hc >= (hbp+120) && hc < (hbp+520)) begin
 				if (h_in_box && v_in_box) begin
-					if (row == cur_row && col == cur_col && ALPHABET[char][ltr_x][7-ltr_y]) begin
-						if (color == 0) begin
+					if (ALPHABET[display[char]][ltr_x][7-ltr_y]) begin
+						red = 3'b111;
+						green = 3'b111;
+						blue = 2'b11;
+					end else begin
+						if (display[color] == 0) begin
+							// white
 							red = 0;
 							green = 0;
 							blue = 0;
-						end else if (color == 1) begin
+						end else if (display[color] == 1) begin
 							// green
 							red = 0;
 							green = 3'b111;
 							blue = 0;
-						end else if (color == 2) begin
+						end else if (display[color] == 2) begin
 							// yellow
 							red = 3'b111;
 							green = 3'b111;
 							blue = 0;
+						end else if (display[color] == 3) begin
+							// gray
+							red = 3'b011;
+							green = 3'b011;
+							blue = 2'b01;
 						end
-					end else begin
-						red = 3'b111;
-						green = 3'b111;
-						blue = 2'b11;
-					end
+					end 
 				end else begin
 					red = 0;
 					green = 0;
@@ -240,3 +244,4 @@ always @(*) begin
 end
 
 endmodule
+
