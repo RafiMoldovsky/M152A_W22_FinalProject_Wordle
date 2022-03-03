@@ -21,6 +21,9 @@
 module vga640x480(
 	input wire dclk,			//pixel clock: 25MHz
 	input wire clr,			//asynchronous reset
+	input wire [6:0] display,	// [6:5] color; [4:0] character
+	input wire [2:0] row,
+	input wire [2:0] col,
 	output wire hsync,		//horizontal sync out
 	output wire vsync,		//vertical sync out
 	output reg [2:0] red,	//red vga output
@@ -46,7 +49,8 @@ reg [9:0] vc;
 
 // alphabet bitmaps
 // ARTWORK
-localparam ALPHABET [0:25][0:7][0:7] = {
+localparam ALPHABET [0:26][0:7][0:7] = {
+	 { 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00},	  // Blank
 	 { 8'h0C, 8'h1E, 8'h33, 8'h33, 8'h3F, 8'h33, 8'h33, 8'h00},   // U+0041 (A)
     { 8'h3F, 8'h66, 8'h66, 8'h3E, 8'h66, 8'h66, 8'h3F, 8'h00},   // U+0042 (B)
     { 8'h3C, 8'h66, 8'h03, 8'h03, 8'h03, 8'h66, 8'h3C, 8'h00},   // U+0043 (C)
@@ -127,16 +131,36 @@ wire [2:0] box_j;
 assign box_j = (hc - hbp - 120) / 80;
 
 wire [2:0] ltr_x;
-assign ltr_x = ((vc - vbp + 68) % 80) / 8;
+assign ltr_x = ((vc - vbp + 64) % 80) / 8;
 wire [2:0] ltr_y;
-assign ltr_y = ((hc - hbp + 28) % 80) / 8;
+assign ltr_y = ((hc - hbp + 24) % 80) / 8;
 
 wire v_in_box;
-assign v_in_box = ((vc - vbp + 68) % 80) < 64;
+assign v_in_box = ((vc - vbp + 64) % 80) < 64;
 
 wire h_in_box;
-assign h_in_box = ((hc - hbp + 28) % 80) < 64;
+assign h_in_box = ((hc - hbp + 24) % 80) < 64;
 
+// get current row and column
+reg [2:0] cur_row;
+reg [2:0] cur_col;
+
+always @(hc) begin
+	if (hc > 140 && hc <= hbp+220) begin cur_col <= 0; end
+	else if (hc <= hbp+300) begin cur_col <= 1; end
+	else if (hc <= hbp+380) begin cur_col <= 2; end
+	else if (hc <= hbp+460) begin cur_col <= 3; end
+	else if (hc <= hbp+540) begin cur_col <= 4; end
+end
+
+always @(vc) begin
+	if 	    (vc <=  vbp+80) begin cur_row <= 0; end
+	else if (vc <= vbp+160) begin cur_row <= 1; end
+	else if (vc <= vbp+240) begin cur_row <= 2; end
+	else if (vc <= vbp+320) begin cur_row <= 3; end
+	else if (vc <= vbp+400) begin cur_row <= 4; end
+	else begin cur_row <= 5; end
+end
 
 // generate sync pulses (active low)
 // ----------------
@@ -144,6 +168,11 @@ assign h_in_box = ((hc - hbp + 28) % 80) < 64;
 // give values to variables of type: wire
 assign hsync = (hc < hpulse) ? 0:1;
 assign vsync = (vc < vpulse) ? 0:1;
+
+wire [4:0] char;
+wire [1:0] color;
+assign char = display[4:0];
+assign color = display[6:5];
 
 always @(*) begin
 // first check if we're within vertical active video range
@@ -155,10 +184,22 @@ always @(*) begin
 			// main game area
 			if (hc >= (hbp+120) && hc < (hbp+520)) begin
 				if (h_in_box && v_in_box) begin
-					if (ALPHABET[5*box_i + box_j][ltr_x][7-ltr_y]) begin
-						red = 0;
-						green = 0;
-						blue = 0;
+					if (row == cur_row && col == cur_col && ALPHABET[char][ltr_x][7-ltr_y]) begin
+						if (color == 0) begin
+							red = 0;
+							green = 0;
+							blue = 0;
+						end else if (color == 1) begin
+							// green
+							red = 0;
+							green = 3'b111;
+							blue = 0;
+						end else if (color == 2) begin
+							// yellow
+							red = 3'b111;
+							green = 3'b111;
+							blue = 0;
+						end
 					end else begin
 						red = 3'b111;
 						green = 3'b111;
