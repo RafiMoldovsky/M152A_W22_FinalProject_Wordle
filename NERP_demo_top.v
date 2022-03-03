@@ -55,11 +55,21 @@ segdisplay U2(
 	.seg(seg),
 	.an(an)
 	);
+	
+wire [6:0] display;
+assign display = 7'b0100010;
+wire [2:0] row;
+wire [2:0] col;
+assign row = 0;
+assign col = 0;
 
 // VGA controller
 vga640x480 U3(
 	.dclk(dclk),
 	.clr(clr),
+	.display(display),
+	.row(row),
+	.col(col),
 	.hsync(hsync),
 	.vsync(vsync),
 	.red(red),
