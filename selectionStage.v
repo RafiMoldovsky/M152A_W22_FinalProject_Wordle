@@ -20,16 +20,15 @@
 //////////////////////////////////////////////////////////////////////////////////
 module selectionStage(
 	input clk,
-    input rst,
     input btnd,
 	input btnr,
     input btnl,
     input btnu,
-	 input [2:0] colIn,
+	input [2:0] colIn,
     input [7:0] rowValues [0:4],
     output columnOut,
     output submitted,
-	 output value
+	output value
 	);
 
     wire left;

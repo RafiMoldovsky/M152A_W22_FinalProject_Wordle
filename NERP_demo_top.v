@@ -21,6 +21,10 @@
 module NERP_demo_top(
 	input wire clk,			//master clock = 50MHz
 	input wire clr,			//right-most pushbutton for reset
+    input btnd,
+	input btnr,
+    input btnl,
+    input btnu,
 	output wire [6:0] seg,	//7-segment display LEDs
 	output wire [3:0] an,	//7-segment display anode enable
 	output wire dp,			//7-segment display decimal point
@@ -63,6 +67,33 @@ wire [2:0] col;
 assign row = 0;
 assign col = 0;
 
+//Start game
+//choose word 
+reg [2:0] col=0;
+reg [2:0] row=0;
+reg [6:0] DISPLAY [0:5] [0:6];
+reg submitted =0;
+reg [6:0] value;
+while(submitted==0) begin //use clock instead
+	selectionStage select(
+		.clk(clk),
+		.btnd(btnd),
+		.btnr(btnr),
+		.btnl(btnl),
+		.btnu(btnu),
+		.colIn(col),
+		.rowValues(DISPLAY[row]),
+		.columnOut(col),
+		.submitted(submitted),
+		.value(value)
+	);
+	DISPLAY[row][value]=value;
+	//display this
+end
+//check if correct
+//if not correct and last row - end game
+//if not correct and not last row - go back selectionStage
+//if correct end game
 // VGA controller
 vga640x480 U3(
 	.dclk(dclk),
