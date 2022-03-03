@@ -75,6 +75,15 @@ localparam ALPHABET [0:25][0:7][0:7] = {
     { 8'h7F, 8'h63, 8'h31, 8'h18, 8'h4C, 8'h66, 8'h7F, 8'h00}   // U+005A (Z)
 };
 
+ reg [31:0] ctr;
+ always @(posedge dclk) begin
+ ctr <= ctr + 1;
+end
+
+wire in_db;
+
+//word_db Word_db(.word(ctr), .in_db(in_db));
+
 // Horizontal & vertical counters --
 // this is how we keep track of where we are on the screen.
 // ------------------------
@@ -111,6 +120,24 @@ begin
 	end
 end
 
+wire [2:0] box_i;
+assign box_i = (vc - vbp) / 80;
+
+wire [2:0] box_j;
+assign box_j = (hc - hbp - 120) / 80;
+
+wire [2:0] ltr_x;
+assign ltr_x = ((vc - vbp + 68) % 80) / 8;
+wire [2:0] ltr_y;
+assign ltr_y = ((hc - hbp + 28) % 80) / 8;
+
+wire v_in_box;
+assign v_in_box = ((vc - vbp + 68) % 80) < 64;
+
+wire h_in_box;
+assign h_in_box = ((hc - hbp + 28) % 80) < 64;
+
+
 // generate sync pulses (active low)
 // ----------------
 // "assign" statements are a quick way to
@@ -118,114 +145,42 @@ end
 assign hsync = (hc < hpulse) ? 0:1;
 assign vsync = (vc < vpulse) ? 0:1;
 
-// Drawing values for the board
-reg [2:0] counter_row; // the square the pixels are currently on
-reg [2:0] counter_col;
-reg [6:0] square_x; // coords of the counter within the board square
-reg [6:0] square_y;
-reg [4:0] art_x; // coords on 8x8 artwork grid within the square
-reg [4:0] art_y;
-
-// Division is not synthesizable so we have to determine the pointer location the hard way
-always @(hc) begin
-	if (hc > 140 && hc <= hbp+220) begin counter_col <= 0; square_x <= hc - 140; end
-	else if (hc <= hbp+300) begin counter_col <= 1; square_x <= hc - 220; end
-	else if (hc <= hbp+380) begin counter_col <= 2; square_x <= hc - 300; end
-	else if (hc <= hbp+460) begin counter_col <= 3; square_x <= hc - 380; end
-	else if (hc <= hbp+540) begin counter_col <= 4; square_x <= hc - 460; end
-end
-
-always @(vc) begin
-	if 	    (vc <=  vbp+80) begin counter_row <= 0; square_y <= vc; end
-	else if (vc <= vbp+160) begin counter_row <= 1; square_y <= vc - 80; end
-	else if (vc <= vbp+240) begin counter_row <= 2; square_y <= vc - 160; end
-	else if (vc <= vbp+320) begin counter_row <= 3; square_y <= vc - 240; end
-	else if (vc <= vbp+400) begin counter_row <= 4; square_y <= vc - 320; end
-	else begin counter_row <= 5; square_y <= vc - 400; end
-end
-
-always @(square_x) begin
-	if (square_x > 25 && square_x <= 30) art_x <= 0;
-	else if (square_x <= 35) art_x <= 1;
-	else if (square_x <= 40) art_x <= 2;
-	else if (square_x <= 45) art_x <= 3;
-	else if (square_x <= 50) art_x <= 4;
-	else if (square_x <= 55) art_x <= 5;
-	else if (square_x <= 60) art_x <= 6;
-	else if (square_x <= 65) art_x <= 7;
-	else art_x <= -1;
-end
-
-always @(square_y) begin
-	if (square_y > 25 && square_y <= 30) art_y <= 0;
-	else if (square_y <= 35) art_y <= 1;
-	else if (square_y <= 40) art_y <= 2;
-	else if (square_y <= 45) art_y <= 3;
-	else if (square_y <= 50) art_y <= 4;
-	else if (square_y <= 55) art_y <= 5;
-	else if (square_y <= 60) art_y <= 6;
-	else if (square_y <= 65) art_y <= 7;
-	else art_y <= -1;
-end
-
-// display 100% saturation colorbars
-// ------------------------
-// Combinational "always block", which is a block that is
-// triggered when anything in the "sensitivity list" changes.
-// The asterisk implies that everything that is capable of triggering the block
-// is automatically included in the sensitivty list.  In this case, it would be
-// equivalent to the following: always @(hc, vc)
-// Assignment statements can only be used on type "reg" and should be of the "blocking" type: =
-always @(*)
-begin
-	// first check if we're within vertical active video range
+always @(*) begin
+// first check if we're within vertical active video range
 	if (vc >= vbp && vc < vfp)
 	begin
-		// now display different colors every 80 pixels
-		// while we're within the active horizontal range
-		// -----------------
-		if (hc >= hbp && hc < hfp)
+		// main display area
+		if (hc >= (hbp) && hc < (hbp+640))
 		begin
-			if (hc >= (hbp+140) && hc < (hfp-100) && vc % 80 >= 25 && vc % 80 < 35)
-			// display horizontal lines
-			begin
-				red = 0;
-				green = 0;
-				blue = 0;
-			end
-			else if (hc >= (hbp+120) && hc < (hfp-90) && hc % 80 >= 40 && hc % 80 < 50)
-			// display vertical lines
-			begin
-				red = 0;
-				green = 0;
-				blue = 0;
-			end
-			else
-			// display white background
-			begin
-				red = 3'b111;
-				green = 3'b111;
-				blue = 2'b11;
-			end
-			
-			if (counter_row == 1 && counter_col == 1)
-			// hard code an A
-			begin
-				if (art_x != -1 && art_y != -1)
-				begin
-					if (ALPHABET[0][art_y][art_x]) begin
-					red = 0;
-					green = 0;
-					blue = 0;
-					end
-					else begin
+			// main game area
+			if (hc >= (hbp+120) && hc < (hbp+520)) begin
+				if (h_in_box && v_in_box) begin
+					if (ALPHABET[5*box_i + box_j][ltr_x][7-ltr_y]) begin
+						red = 0;
+						green = 0;
+						blue = 0;
+					end else begin
 						red = 3'b111;
 						green = 3'b111;
 						blue = 2'b11;
 					end
+				end else begin
+					red = 0;
+					green = 0;
+					blue = 0;
 				end
 			end
-		end 
+			// Ukraine flag
+			else if (vc >= (vbp + 240)) begin
+				red = 3'b111;
+				green = 3'b111;
+				blue = 0;
+			end else begin
+				red = 0;
+				green = 0;
+				blue = 2'b11;
+			end
+		end
 		// we're outside active horizontal range so display black
 		else
 		begin
