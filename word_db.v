@@ -1,39 +1,38 @@
 module word_db (input [24:0] word, output wire in_db);
 
 //Bloom filter storing 100 words in 256 bits with 2 hash functions
-// ['gazer', 'radio', 'inbox', 'prune', 'heath', 'humid', 'sandy', 'waver', 'canon', 'power']
-// ['tangy', 'spoil', 'spank', 'penny', 'scrub', 'islet', 'flame', 'abase', 'onset', 'wheat']
-// ['dicey', 'glove', 'serum', 'cavil', 'rivet', 'happy', 'mercy', 'crime', 'aloft', 'gland']
-// ['loose', 'heave', 'nudge', 'green', 'diver', 'dopey', 'phony', 'place', 'shrug', 'pinky']
-// ['civil', 'thank', 'elegy', 'quite', 'enact', 'taunt', 'ionic', 'ralph', 'dying', 'reset']
-// ['widow', 'stuff', 'viral', 'rarer', 'serif', 'solve', 'email', 'gruff', 'drain', 'thick']
-// ['still', 'nadir', 'shied', 'liken', 'fever', 'cable', 'tweed', 'belle', 'shrub', 'sadly']
-// ['spire', 'giddy', 'credo', 'enema', 'spray', 'cater', 'wedge', 'steel', 'juicy', 'gauge']
-// ['bawdy', 'scald', 'pulse', 'fewer', 'asset', 'glass', 'scorn', 'dryer', 'mucus', 'knock']
-// ['axiom', 'attic', 'pulpy', 'newer', 'eager', 'stole', 'grape', 'truly', 'woken', 'chant']
-
+// ['wedge', 'fluff', 'giddy', 'lathe', 'group', 'began', 'steel', 'dowel', 'twine', 'union']
+// ['crier', 'ingot', 'dutch', 'amend', 'elfin', 'cheat', 'write', 'bitty', 'skull', 'notch']
+// ['fetid', 'coyly', 'boney', 'dingy', 'prank', 'peach', 'trend', 'chief', 'pesto', 'axial']
+// ['older', 'found', 'posit', 'rival', 'spunk', 'locus', 'gavel', 'stone', 'hussy', 'flown']
+// ['cleat', 'mushy', 'given', 'bayou', 'verso', 'being', 'butch', 'slink', 'smile', 'bride']
+// ['march', 'leery', 'grass', 'spike', 'tower', 'khaki', 'chump', 'pecan', 'abbot', 'verve']
+// ['lipid', 'aloud', 'booze', 'surer', 'quirk', 'dwell', 'movie', 'whiff', 'dense', 'afire']
+// ['churn', 'eking', 'fussy', 'fever', 'stack', 'plaza', 'agent', 'irony', 'junto', 'shunt']
+// ['bowel', 'right', 'altar', 'abbey', 'raven', 'gonad', 'three', 'trunk', 'debut', 'adept']
+// ['proxy', 'fetus', 'gloss', 'stunk', 'brawl', 'novel', 'paint', 'tabby', 'splat', 'cruel']
 localparam [7:0] hash_params [0:1] [0:4] = {
-{8'h0024, 8'h0048, 8'h00ae, 8'h00d8, 8'h0023},
-{8'h007f, 8'h00f3, 8'h00d0, 8'h001c, 8'h00ba}
+{8'h00e6, 8'h00c5, 8'h0085, 8'h00f9, 8'h00f4},
+{8'h00b6, 8'h00fa, 8'h0077, 8'h00dc, 8'h0077}
 };
 
 localparam [255:0] bloom_filter = {
-16'b101011000100101,
-16'b110011101110011,
-16'b011110111101111,
-16'b010010111010111,
-16'b001101001000110,
-16'b011001110100110,
-16'b110001101101010,
-16'b111110111101000,
-16'b011011001101011,
-16'b001001100001110,
-16'b001101100100000,
-16'b110101101111110,
-16'b101011100110010,
-16'b010111011111011,
-16'b010111011111110,
-16'b011010000011000
+16'b100111111001011,
+16'b000101110111001,
+16'b111000000111000,
+16'b011000001101100,
+16'b100100111101111,
+16'b110000111100101,
+16'b010101110110101,
+16'b010110100101001,
+16'b111111011011100,
+16'b110101111000110,
+16'b111010000000010,
+16'b011011010101011,
+16'b111100110111100,
+16'b111000111000111,
+16'b111011001101111,
+16'b001110110000110
 };
 
 wire [7:0] hash_table [0:1][0:4];
