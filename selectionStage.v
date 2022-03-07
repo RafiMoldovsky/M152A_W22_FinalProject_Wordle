@@ -20,62 +20,69 @@
 //////////////////////////////////////////////////////////////////////////////////
 module selectionStage(
 	input clk,
-    input btnd,
-	input btnr,
-    input btnl,
-    input btnu,
+   input left, // assume these are debounced and only give single-clock-cycle pulses
+   input right,
+   input up,
+   input down,
 	input [2:0] colIn,
-    input [7:0] rowValues [0:4],
-    output columnOut,
-    output submitted,
-	output value
+   input [34:0] rowValues,
+   output [2:0] columnOut,
+   output submitted,
+	output [6:0] value
 	);
 
-    wire left;
-    wire right;
-    wire up;
-    wire down;
+
     reg submit=0;
-	 debouncer LeftDebouncer(.clk_sys(clk), .button(btnl), .button_output(left));
-    debouncer RightDebouncer(.clk_sys(clk), .button(btnr), .button_output(right));
-    debouncer UpDebouncer(.clk_sys(clk), .button(btnu), .button_output(up));
-    debouncer DownDebouncer(.clk_sys(clk), .button(btnd), .button_output(down));
+	 
+	 localparam NORMAL = 0;
+	 localparam COL_TRANSITION = 1;
+	 localparam ROW_TRANSITION = 2;
+	 
+	 reg [1:0] state;
+
     reg [2:0] column;
 	 //letter color row column 
     //combine letter and color - last 5 bits are letter, 1st and 2nd are color 
     //instantiate as all empty, grey 
-    //blank = 0, grey = 0, yellow=1, green= 2
-    //A=1, B=2, C=3, ...
-    reg [6:0] currentValue = 7'b0000001; //letter A in grey
+    //blank = 26, grey = 0, yellow=1, green= 2, red = 3
+    //A=0, B=1, C=2, ...
+    reg [6:0] currentValue; // all 0s -> letter A in grey
+									 // init to anything else is not synthable
 	 always @(posedge clk) begin //always gonna be grey here
+		if (state == NORMAL) begin
 			column<=colIn;
-        if(btnd) begin
-            currentValue<=currentValue+1'b1;
-            if(currentValue==7'b0011011) begin //equals 27
-                currentValue<= 7'b0000001;
-            end
+        if(down) begin
+            currentValue[4:0] <= (currentValue[4:0]+ 1) % 26;
         end
-		  else if(btnu) begin
-            if(currentValue==7'b0000001) begin //equals A 
-                currentValue<= 7'b0011010;
-            end
-            currentValue<=currentValue-1'b1;
+		  else if(up) begin
+            currentValue[4:0] <= (currentValue[4:0] + 25) % 26;
         end
-        else if(btnr) begin
+        else if(right) begin
             if(column==4) begin
                 submit<=1;
+					 state<=ROW_TRANSITION;
             end
             else begin
-                column<=column+1;
-                currentValue<=rowValues[column];
-            end  
+               column <= column+1;
+					currentValue[6:5] <= 0;
+					state <= COL_TRANSITION;
+			   end  
         end
-		  else if(btnl) begin
+		  else if(left) begin
             if(column!=0) begin
                 column<=column-1;
 					 currentValue<=rowValues[column];
             end
         end
+		end else if (state == COL_TRANSITION) begin
+			currentValue<=rowValues[column];
+			state <= NORMAL;
+		end else if (state == ROW_TRANSITION) begin
+			column <= 0;
+			submit <= 0;
+			currentValue <= rowValues[0];
+			state <= NORMAL;
+		end
     end
     assign submitted=submit;
     assign columnOut=column;

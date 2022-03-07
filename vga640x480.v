@@ -21,7 +21,7 @@
 module vga640x480(
 	input wire dclk,			//pixel clock: 25MHz
 	input wire clr,			//asynchronous reset
-	input wire [209:0] display,	// [6:5] color; [4:0] character
+	input wire [209:0] display,	// sadly, arrays not allowed as input in verilog
 	output wire hsync,		//horizontal sync out
 	output wire vsync,		//vertical sync out
 	output reg [2:0] red,	//red vga output
@@ -47,8 +47,7 @@ reg [9:0] vc;
 
 // alphabet bitmaps
 // ARTWORK
-localparam ALPHABET [0:26][0:7][0:7] = {
-	 { 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00},	  // Blank
+localparam ALPHABET [0:26][0:7][7:0] = {
 	 { 8'h0C, 8'h1E, 8'h33, 8'h33, 8'h3F, 8'h33, 8'h33, 8'h00},   // U+0041 (A)
     { 8'h3F, 8'h66, 8'h66, 8'h3E, 8'h66, 8'h66, 8'h3F, 8'h00},   // U+0042 (B)
     { 8'h3C, 8'h66, 8'h03, 8'h03, 8'h03, 8'h66, 8'h3C, 8'h00},   // U+0043 (C)
@@ -74,17 +73,11 @@ localparam ALPHABET [0:26][0:7][0:7] = {
     { 8'h63, 8'h63, 8'h63, 8'h6B, 8'h7F, 8'h77, 8'h63, 8'h00},   // U+0057 (W)
     { 8'h63, 8'h63, 8'h36, 8'h1C, 8'h1C, 8'h36, 8'h63, 8'h00},   // U+0058 (X)
     { 8'h33, 8'h33, 8'h33, 8'h1E, 8'h0C, 8'h0C, 8'h1E, 8'h00},   // U+0059 (Y)
-    { 8'h7F, 8'h63, 8'h31, 8'h18, 8'h4C, 8'h66, 8'h7F, 8'h00}   // U+005A (Z)
+    { 8'h7F, 8'h63, 8'h31, 8'h18, 8'h4C, 8'h66, 8'h7F, 8'h00},   // U+005A (Z)
+	 { 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00}	  // Blank
 };
 
- reg [31:0] ctr;
- always @(posedge dclk) begin
- ctr <= ctr + 1;
-end
-
-wire in_db;
-
-//word_db Word_db(.word(ctr), .in_db(in_db));
+// BEGIN stuff from NERP Demo
 
 // Horizontal & vertical counters --
 // this is how we keep track of where we are on the screen.
@@ -122,44 +115,6 @@ begin
 	end
 end
 
-wire [2:0] box_i;
-assign box_i = (vc - vbp) / 80;
-
-wire [2:0] box_j;
-assign box_j = (hc - hbp - 120) / 80;
-
-wire [2:0] ltr_x;
-assign ltr_x = ((vc - vbp + 64) % 80) / 8;
-wire [2:0] ltr_y;
-assign ltr_y = ((hc - hbp + 24) % 80) / 8;
-
-wire v_in_box;
-assign v_in_box = ((vc - vbp + 64) % 80) < 64;
-
-wire h_in_box;
-assign h_in_box = ((hc - hbp + 24) % 80) < 64;
-
-// get current row and column
-reg [2:0] cur_row;
-reg [2:0] cur_col;
-
-always @(hc) begin
-	if (hc > 140 && hc <= hbp+220) begin cur_col <= 0; end
-	else if (hc <= hbp+300) begin cur_col <= 1; end
-	else if (hc <= hbp+380) begin cur_col <= 2; end
-	else if (hc <= hbp+460) begin cur_col <= 3; end
-	else if (hc <= hbp+540) begin cur_col <= 4; end
-end
-
-always @(vc) begin
-	if 	    (vc <=  vbp+80) begin cur_row <= 0; end
-	else if (vc <= vbp+160) begin cur_row <= 1; end
-	else if (vc <= vbp+240) begin cur_row <= 2; end
-	else if (vc <= vbp+320) begin cur_row <= 3; end
-	else if (vc <= vbp+400) begin cur_row <= 4; end
-	else begin cur_row <= 5; end
-end
-
 // generate sync pulses (active low)
 // ----------------
 // "assign" statements are a quick way to
@@ -167,10 +122,41 @@ end
 assign hsync = (hc < hpulse) ? 0:1;
 assign vsync = (vc < vpulse) ? 0:1;
 
-wire [4:0] char;
-wire [1:0] color;
-assign char = box_i * 35 + box_j * 7 + 4:box_i * 35 + box_j * 7 + 0;
-assign color = box_i * 35 + box_j * 7 + 6:box_i * 35 + box_j * 7 + 5;
+// END stuff from NERP demo
+
+// Display consists of 6 row x 5 col 80x80 squares tiling the rectangle
+// with upper left corner at (vbp, hbp + 120) (inclusive)
+// and lower right corner at (vbp + 480, hbp + 520) (exclusive)
+// (cur_row, cur_col) indicates which square (vc, hc) is in
+
+wire [2:0] cur_row;
+assign cur_row = (vc - vbp) / 80;
+
+wire [2:0] cur_col;
+assign cur_col = (hc - hbp - 120) / 80;
+
+// Letters are drawn in the middle 64x64 of each 80x80 box
+// upper left corner at (8,8) lower right at (72,72) in each box
+// and are bitmapped from 8x8 (hence the divide by 8)
+// (ltr_x, ltr_y) give the coordinates corresponding to (vc,hc)
+// within the 8x8 bitmap 
+
+wire [3:0] ltr_x;
+assign ltr_x = ((vc - vbp + 72) % 80) / 8;
+wire [3:0] ltr_y;
+assign ltr_y = ((hc - hbp + 32) % 80) / 8;
+
+wire v_in_box;
+assign v_in_box = ltr_x < 8;
+
+wire h_in_box;
+assign h_in_box = ltr_y < 8;
+
+// fetch the relevant part of the display
+wire [6:0] cur_cell_display;
+// this is what I meant by +: syntax
+assign cur_cell_display = display[35*cur_row + 7*cur_col +: 7];
+
 
 always @(*) begin
 // first check if we're within vertical active video range
@@ -181,38 +167,32 @@ always @(*) begin
 		begin
 			// main game area
 			if (hc >= (hbp+120) && hc < (hbp+520)) begin
-				if (h_in_box && v_in_box) begin
-					if (ALPHABET[display[char]][ltr_x][7-ltr_y]) begin
+				if (h_in_box && v_in_box && ALPHABET[cur_cell_display[4:0]][ltr_x][ltr_y]) begin
 						red = 3'b111;
 						green = 3'b111;
 						blue = 2'b11;
-					end else begin
-						if (display[color] == 0) begin
-							// white
-							red = 0;
-							green = 0;
-							blue = 0;
-						end else if (display[color] == 1) begin
-							// green
-							red = 0;
-							green = 3'b111;
-							blue = 0;
-						end else if (display[color] == 2) begin
-							// yellow
-							red = 3'b111;
-							green = 3'b111;
-							blue = 0;
-						end else if (display[color] == 3) begin
-							// gray
-							red = 3'b011;
-							green = 3'b011;
-							blue = 2'b01;
-						end
-					end 
 				end else begin
-					red = 0;
-					green = 0;
-					blue = 0;
+					if (cur_cell_display[6:5] == 0) begin
+						// gray
+						red = 3'b010;
+						green = 3'b010;
+						blue = 2'b01;
+					end else if (cur_cell_display[6:5] == 1) begin
+						// green
+						red = 0;
+						green = 3'b111;
+						blue = 0;
+					end else if (cur_cell_display[6:5] == 2) begin
+						// yellow
+						red = 3'b111;
+						green = 3'b111;
+						blue = 0;
+					end else if (cur_cell_display[6:5] == 3) begin
+						// dark red
+						red = 3'b101;
+						green = 3'b000;
+						blue = 2'b00;
+					end 
 				end
 			end
 			// Ukraine flag

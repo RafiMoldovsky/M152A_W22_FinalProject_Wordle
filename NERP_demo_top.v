@@ -60,40 +60,71 @@ segdisplay U2(
 	.an(an)
 	);
 	
-wire [6:0] display;
-assign display = 7'b0100010;
-wire [2:0] row;
-wire [2:0] col;
-assign row = 0;
-assign col = 0;
+reg [209:0] display;
 
 //Start game
 //choose word 
 reg [2:0] col=0;
 reg [2:0] row=0;
-reg [6:0] DISPLAY [0:5] [0:6];
-reg submitted =0;
-reg [6:0] value;
-while(submitted==0) begin //use clock instead
-	selectionStage select(
-		.clk(clk),
-		.btnd(btnd),
-		.btnr(btnr),
-		.btnl(btnl),
-		.btnu(btnu),
-		.colIn(col),
-		.rowValues(DISPLAY[row]),
-		.columnOut(col),
-		.submitted(submitted),
-		.value(value)
-	);
-	DISPLAY[row][value]=value;
-	//display this
+
+wire submitted;
+wire[6:0] value;
+
+wire up, down, left, right;
+debouncer LeftDebouncer(.clk_sys(clk), .button(btnl), .button_output(left));
+debouncer RightDebouncer(.clk_sys(clk), .button(btnr), .button_output(right));
+debouncer UpDebouncer(.clk_sys(clk), .button(btnu), .button_output(up));
+debouncer DownDebouncer(.clk_sys(clk), .button(btnd), .button_output(down));
+
+selectionStage select(
+	.clk(clk),
+	.up(up),
+	.down(down),
+	.left(left),
+	.right(right),
+	.colIn(col),
+	.rowValues(display[35*row +: 35]),
+	.columnOut(col),
+	.submitted(submitted),
+	.value(value)
+);
+
+// the main FSM
+
+localparam SELECT_WORD = 2'b00;
+localparam EDIT_LETTER = 2'b01;
+localparam DISPLAY_WIN = 2'b10;
+
+reg [1:0] current_state;
+wire[24:0] current_word;
+reg[6:0] word_index;
+
+target_word Target_word(.index(word_index), .word(current_word)); 
+
+wire[34:0] row_display_with_color;
+getColors GetColors(.input_row(display[35 * row +: 35]), .chosenWord(current_word), 
+	.output_row(row_display_with_color));
+
+always @(posedge clk) begin
+if (current_state == SELECT_WORD) begin
+	word_index <= (word_index + 1) % 100;
+	if (right) begin
+		current_state <= EDIT_LETTER;
+	end
 end
-//check if correct
-//if not correct and last row - end game
-//if not correct and not last row - go back selectionStage
-//if correct end game
+else if (current_state == EDIT_LETTER) begin
+	if (submitted) begin
+		row <= row + 1;
+		display[35 * row +: 35] <= row_display_with_color;
+	end else begin
+		display[35 * row + 7 * col +: 7] <= value;
+	end
+end else if (current_state == DISPLAY_WIN) begin
+
+end
+end
+
+
 // VGA controller
 vga640x480 U3(
 	.dclk(dclk),

@@ -1,3 +1,5 @@
+module target_word(input [6:0] index, output [24:0] word);
+
 localparam [24:0] wordlist [0:99] = {
 25'b1001110110001000000001010, //tweak
 25'b0000110001001000000001010, //break
@@ -100,3 +102,7 @@ localparam [24:0] wordlist [0:99] = {
 25'b0101100100000000010111000, //leafy
 25'b0110001110101100010010001 //mower
 };
+
+assign word = wordlist[index];
+
+endmodule
