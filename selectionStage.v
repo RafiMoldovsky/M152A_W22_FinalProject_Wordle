@@ -20,11 +20,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 module selectionStage(
 	input clk,
+	input clr,
    input left, // assume these are debounced and only give single-clock-cycle pulses
    input right,
    input up,
    input down,
-	input [2:0] colIn,
    input [34:0] rowValues,
    output [2:0] columnOut,
    output submitted,
@@ -32,11 +32,11 @@ module selectionStage(
 	);
 
 
-    reg submit=0;
+    reg submit;
 	 
-	 localparam NORMAL = 0;
-	 localparam COL_TRANSITION = 1;
-	 localparam ROW_TRANSITION = 2;
+	 localparam NORMAL = 2'b00;
+	 localparam COL_TRANSITION = 2'b01;
+	 localparam ROW_TRANSITION = 2'b10;
 	 
 	 reg [1:0] state;
 
@@ -47,15 +47,27 @@ module selectionStage(
     //blank = 26, grey = 0, yellow=1, green= 2, red = 3
     //A=0, B=1, C=2, ...
     reg [6:0] currentValue; // all 0s -> letter A in grey
-									 // init to anything else is not synthable
-	 always @(posedge clk) begin //always gonna be grey here
+	 
+	 assign submitted=submit;
+    assign columnOut=column;
+    assign value=currentValue;
+	 
+	 wire [4:0] currentLetter;
+	 assign currentLetter = currentValue[4:0];
+	 
+always @(posedge clk or posedge clr) begin //always gonna be grey here
+	 if (clr) begin
+		 currentValue <= 0;
+		 state <= NORMAL;
+		 column <= 0;
+		 submit <= 0;
+	 end else begin
 		if (state == NORMAL) begin
-			column<=colIn;
         if(down) begin
-            currentValue[4:0] <= (currentValue[4:0]+ 1) % 26;
+            currentValue[4:0] <= (currentLetter + 1) % 26;
         end
 		  else if(up) begin
-            currentValue[4:0] <= (currentValue[4:0] + 25) % 26;
+            currentValue[4:0] <= (currentLetter + 25) % 26;
         end
         else if(right) begin
             if(column==4) begin
@@ -84,7 +96,5 @@ module selectionStage(
 			state <= NORMAL;
 		end
     end
-    assign submitted=submit;
-    assign columnOut=column;
-    assign value=currentValue;
+end
 endmodule

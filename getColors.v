@@ -23,14 +23,21 @@ module getColors(
 	input [24:0] chosenWord,
 	output [34:0] output_row);
 	
-	wire [4:0] yellows;
-	wire [4:0] greens;
+	reg [4:0] yellows;
+	reg [4:0] greens;
 	
 	assign output_row = {yellows[4], greens[4], input_row[32:28], 
 	yellows[3], greens[3], input_row[25:21],
 	yellows[2], greens[2], input_row[18:14], 
 	yellows[1], greens[1], input_row[11:7], 
 	yellows[0], greens[0], input_row[4:0]};
+	
+	wire [24:0] inputWord;
+	assign inputWord = {input_row[32:28], 
+	input_row[25:21],
+	input_row[18:14], 
+	input_row[11:7], 
+	input_row[4:0]};
 
 	//check greens first
     //not sure if this has to be in an always block
