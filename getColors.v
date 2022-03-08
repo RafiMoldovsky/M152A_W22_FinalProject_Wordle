@@ -21,7 +21,8 @@
 module getColors(
 	input [34:0] input_row,		// The word the player inputs into wordle 
 	input [24:0] chosenWord,
-	output [34:0] output_row);
+	output [34:0] output_row,
+	output doneGame);
 	
 	reg [4:0] yellows;
 	reg [4:0] greens;
@@ -80,4 +81,5 @@ module getColors(
             end
         end
     end
+	 assign doneGame=&greens;
 endmodule 
