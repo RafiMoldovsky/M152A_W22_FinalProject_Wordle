@@ -19,21 +19,15 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module debouncer(
-    input clk_sys,
+    input logicclk,
     input button,
+	 input clr,
+	 input [6:0] timeToFirstPress,
     output button_output
 );
-reg [4:0] count=5'b00000; 
+reg [6:0] count; 
 reg button_output_reg;
 wire [3:0] count_sum;
-
-reg [17:0] clk_divider;
-
-always @(posedge clk_sys) clk_divider = clk_divider+1;
-
-assign clk = clk_divider[17];
-
-reg [1:0] button_input_ff;
 
 /*
 always @(posedge clk or posedge button) begin
@@ -45,25 +39,19 @@ end
 	
 */
 
-always @(posedge clk) begin
+always @(posedge logicclk or posedge clr) begin
+if (clr) begin
+	count <= 7'b0;
+end else begin
     if(button==0)
-        count<=(count << 1);
+        count<=7'b0;
     else
     begin
-        count<=(count<<1)|1;
+        count<=count+1;
     end
 end
-
-always @(posedge clk) begin
-        if(count_sum<=1) begin
-            button_output_reg<=0;
-        end else if (count_sum==5)
-        begin
-            button_output_reg<=1;
-        end
 end
 
-    assign count_sum= count[4]+count[3]+count[2]+count[1]+count[0];
-    assign button_output=button_output_reg;
+assign button_output=(count==timeToFirstPress);
 
 endmodule 
