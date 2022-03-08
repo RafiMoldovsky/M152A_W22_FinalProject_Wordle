@@ -63,7 +63,7 @@ segdisplay U2(
 
 // These values maintained by top
 reg [2:0] row;
-reg [209:0] display;
+reg [34:0] display [0:5];
 reg [1:0] current_state;
 reg[6:0] word_index;
 
@@ -93,7 +93,7 @@ selectionStage select(
 	.down(down),
 	.left(left),
 	.right(right),
-	.rowValues(display[35*row +: 35]),
+	.rowValues(display[row]),
 	.columnOut(col),
 	.submitted(submitted),
 	.value(value)
@@ -109,7 +109,7 @@ localparam DISPLAY_WIN = 2'b10;
 
 target_word Target_word(.index(word_index), .word(current_word)); 
 
-getColors GetColors(.input_row(display[35 * row +: 35]), .chosenWord(current_word), 
+getColors GetColors(.input_row(display[row]), .chosenWord(current_word), 
 	.output_row(row_display_with_color));
 
 always @(posedge logicclk or posedge clr) begin
@@ -117,7 +117,13 @@ if (clr) begin
 	row <= 0;
 	word_index <= 0;
 	current_state <= SELECT_WORD;
-	display <= 210'b0;
+
+	display[0] <= 35'b0;
+	display[1] <= 35'b0;
+	display[2] <= 35'b0;
+	display[3] <= 35'b0;
+	display[4] <= 35'b0;
+	display[5] <= 35'b0;
 end else begin
 	if (current_state == SELECT_WORD) begin
 		word_index <= (word_index + 1) % 100;
@@ -128,9 +134,9 @@ end else begin
 	else if (current_state == EDIT_LETTER) begin
 		if (submitted) begin
 			row <= row + 1;
-			display[35 * row +: 35] <= row_display_with_color;
+			display[row] <= row_display_with_color;
 		end else begin
-			display[35 * row + 7 * col +: 7] <= value;
+			display[row][7 * col +: 7] <= value;
 		end
 	end else if (current_state == DISPLAY_WIN) begin
 		// TODO
@@ -144,7 +150,7 @@ end
 vga640x480 U3(
 	.dclk(dclk),
 	.clr(clr),
-	.display(display),
+	.display({display[5],display[4],display[3],display[2],display[1],display[0]}),
 	.hsync(hsync),
 	.vsync(vsync),
 	.red(red),

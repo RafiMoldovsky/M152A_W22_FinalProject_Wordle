@@ -34,12 +34,20 @@ parameter hpixels = 800;// horizontal pixels per line
 parameter vlines = 521; // vertical lines per frame
 parameter hpulse = 96; 	// hsync pulse length
 parameter vpulse = 2; 	// vsync pulse length
-parameter hbp = 144; 	// end of horizontal back porch
-parameter hfp = 784; 	// beginning of horizontal front porch
-parameter vbp = 31; 		// end of vertical back porch
-parameter vfp = 511; 	// beginning of vertical front porch
+parameter [9:0] hbp = 144; 	// end of horizontal back porch
+parameter [9:0] hfp = 784; 	// beginning of horizontal front porch
+parameter [9:0] vbp = 31; 		// end of vertical back porch
+parameter [9:0] vfp = 511; 	// beginning of vertical front porch
 // active horizontal video is therefore: 784 - 144 = 640
 // active vertical video is therefore: 511 - 31 = 480
+
+wire [34:0] display_rows [0:5];
+assign display_rows[0] = display[34:0];
+assign display_rows[1] = display[69:35];
+assign display_rows[2] = display[104:70];
+assign display_rows[3] = display[139:105];
+assign display_rows[4] = display[174:140];
+assign display_rows[5] = display[209:175];
 
 // registers for storing the horizontal & vertical counters
 reg [9:0] hc;
@@ -130,10 +138,10 @@ assign vsync = (vc < vpulse) ? 0:1;
 // (cur_row, cur_col) indicates which square (vc, hc) is in
 
 wire [2:0] cur_row;
-assign cur_row = (vc - vbp) / 80;
+assign cur_row = (vc - vbp) / 7'd80;
 
 wire [2:0] cur_col;
-assign cur_col = (hc - hbp - 120) / 80;
+assign cur_col = (hc - hbp - 10'd120) / 7'd80;
 
 // Letters are drawn in the middle 64x64 of each 80x80 box
 // upper left corner at (8,8) lower right at (72,72) in each box
@@ -142,9 +150,9 @@ assign cur_col = (hc - hbp - 120) / 80;
 // within the 8x8 bitmap 
 
 wire [3:0] ltr_x;
-assign ltr_x = ((vc - vbp + 72) % 80) / 8;
+assign ltr_x = ((vc - vbp + 10'd72) % 7'd80) / 4'd8;
 wire [3:0] ltr_y;
-assign ltr_y = ((hc - hbp + 32) % 80) / 8;
+assign ltr_y = ((hc - hbp + 10'd32) % 7'd80) / 4'd8;
 
 wire v_in_box;
 assign v_in_box = ltr_x < 8;
@@ -155,7 +163,7 @@ assign h_in_box = ltr_y < 8;
 // fetch the relevant part of the display
 wire [6:0] cur_cell_display;
 // this is what I meant by +: syntax
-assign cur_cell_display = display[35*cur_row + 7*cur_col +: 7];
+assign cur_cell_display = display_rows[cur_row][7*cur_col +: 7];
 
 
 always @(*) begin

@@ -64,10 +64,10 @@ always @(posedge clk or posedge clr) begin //always gonna be grey here
 	 end else begin
 		if (state == NORMAL) begin
         if(down) begin
-            currentValue[4:0] <= (currentLetter + 1) % 26;
+            currentValue[4:0] <= (currentLetter + 5'd1) % 5'd26;
         end
 		  else if(up) begin
-            currentValue[4:0] <= (currentLetter + 25) % 26;
+            currentValue[4:0] <= (currentLetter + 5'd25) % 5'd26;
         end
         else if(right) begin
             if(column==4) begin
