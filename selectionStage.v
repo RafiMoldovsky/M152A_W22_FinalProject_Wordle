@@ -25,20 +25,30 @@ module selectionStage(
    input right,
    input up,
    input down,
-   input [34:0] rowValues,
+	input doneGame,
+   input [34:0] rowValuesFlat,
    output [2:0] columnOut,
    output submitted,
 	output [6:0] value
 	);
 
 
+wire [6:0] rowValues [0:4];
+assign rowValues[0] = rowValuesFlat[6:0];
+assign rowValues[1] = rowValuesFlat[13:7];
+assign rowValues[2] = rowValuesFlat[20:14];
+assign rowValues[3] = rowValuesFlat[27:21];
+assign rowValues[4] = rowValuesFlat[34:28];
+
     reg submit;
 	 
 	 localparam NORMAL = 2'b00;
-	 localparam COL_TRANSITION = 2'b01;
-	 localparam ROW_TRANSITION = 2'b10;
+	 localparam LEFT_TRANSITION = 2'b01;
+	 localparam RIGHT_TRANSITION = 2'b10;
+	 localparam ROW_TRANSITION = 2'b11;
+	 localparam WAIT = 3'b100;
 	 
-	 reg [1:0] state;
+	 reg [2:0] state;
 
     reg [2:0] column;
 	 //letter color row column 
@@ -58,7 +68,7 @@ module selectionStage(
 always @(posedge clk or posedge clr) begin //always gonna be grey here
 	 if (clr) begin
 		 currentValue <= 0;
-		 state <= NORMAL;
+		 state <= WAIT;
 		 column <= 0;
 		 submit <= 0;
 	 end else begin
@@ -67,7 +77,8 @@ always @(posedge clk or posedge clr) begin //always gonna be grey here
             currentValue[4:0] <= (currentLetter + 5'd1) % 5'd26;
         end
 		  else if(up) begin
-            currentValue[4:0] <= (currentLetter + 5'd25) % 5'd26;
+            if (currentLetter == 5'd0) currentValue[4:0] <= 5'd25;
+				else currentValue[4:0] <= currentLetter - 1;
         end
         else if(right) begin
             if(column==4) begin
@@ -75,25 +86,41 @@ always @(posedge clk or posedge clr) begin //always gonna be grey here
 					 state<=ROW_TRANSITION;
             end
             else begin
-               column <= column+1;
-					currentValue[6:5] <= 0;
-					state <= COL_TRANSITION;
+					currentValue <= currentValue & 7'b0011111;
+					state <= RIGHT_TRANSITION;
 			   end  
         end
 		  else if(left) begin
             if(column!=0) begin
-                column<=column-1;
-					 currentValue<=rowValues[column];
+					 currentValue <= currentValue & 7'b0011111;
+					 state<=LEFT_TRANSITION;
             end
         end
-		end else if (state == COL_TRANSITION) begin
-			currentValue<=rowValues[column];
+		end else if (state == LEFT_TRANSITION) begin
+			currentValue<= rowValues[column-1] | 7'b1100000;
+			column <= column-1;
+			state <= NORMAL;
+		end else if (state == RIGHT_TRANSITION) begin
+			if (rowValues[column+1][4:0] == 5'd26)
+				currentValue<=7'b1100000;
+			else
+				currentValue<=rowValues[column+1] | 7'b1100000;
+			column <= column+1;
 			state <= NORMAL;
 		end else if (state == ROW_TRANSITION) begin
 			column <= 0;
 			submit <= 0;
-			currentValue <= rowValues[0];
-			state <= NORMAL;
+			currentValue <= rowValues[0] | 7'b1100000;
+			if (doneGame)
+				state <= NORMAL;
+			else
+				state <= WAIT;
+		end else if (state == WAIT) begin
+			column <= 0;
+			submit <= 0;
+			if (right) begin
+				state <= NORMAL;
+			end
 		end
     end
 end
